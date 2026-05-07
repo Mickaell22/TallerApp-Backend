@@ -27,12 +27,19 @@ const register = async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const usuario = await Usuario.create({ nombre, email, password: hash, rol: rol || 'cliente' });
 
+    let cliente = null;
     if (usuario.rol === 'cliente') {
-      await Cliente.create({ usuario_id: usuario.id, telefono, direccion });
+      cliente = await Cliente.create({ usuario_id: usuario.id, telefono, direccion });
     }
 
     const token = generarToken(usuario);
-    return res.status(201).json({ data: { token, usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol } } });
+    return res.status(201).json({
+      data: {
+        token,
+        usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol },
+        cliente_id: cliente ? cliente.id : null,
+      },
+    });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
