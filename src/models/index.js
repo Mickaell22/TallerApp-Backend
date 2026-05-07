@@ -1,6 +1,8 @@
 const Usuario = require('./Usuario');
 const Cliente = require('./Cliente');
 const Reparacion = require('./Reparacion');
+const Repuesto = require('./Repuesto');
+const ReparacionRepuesto = require('./ReparacionRepuesto');
 
 Usuario.hasOne(Cliente, { foreignKey: 'usuario_id', as: 'perfil' });
 Cliente.belongsTo(Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
@@ -11,4 +13,7 @@ Reparacion.belongsTo(Cliente, { foreignKey: 'cliente_id', as: 'cliente' });
 Usuario.hasMany(Reparacion, { foreignKey: 'tecnico_id', as: 'reparaciones_asignadas' });
 Reparacion.belongsTo(Usuario, { foreignKey: 'tecnico_id', as: 'tecnico' });
 
-module.exports = { Usuario, Cliente, Reparacion };
+Reparacion.belongsToMany(Repuesto, { through: ReparacionRepuesto, foreignKey: 'reparacion_id', as: 'repuestos' });
+Repuesto.belongsToMany(Reparacion, { through: ReparacionRepuesto, foreignKey: 'repuesto_id', as: 'reparaciones' });
+
+module.exports = { Usuario, Cliente, Reparacion, Repuesto, ReparacionRepuesto };
