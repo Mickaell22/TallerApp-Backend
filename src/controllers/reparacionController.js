@@ -1,19 +1,19 @@
 const { Reparacion, Cliente, Usuario } = require('../models');
+const { enviarCorreo } = require('../services/emailService');
 
 const generarCodigo = () => {
   const num = Math.floor(1000 + Math.random() * 9000);
   return `REP-${num}`;
 };
 
+const includeCliente = [
+  { model: Cliente, as: 'cliente', include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'email'] }] },
+  { model: Usuario, as: 'tecnico', attributes: ['id', 'nombre'] },
+];
+
 const listar = async (req, res) => {
   try {
-    const reparaciones = await Reparacion.findAll({
-      include: [
-        { model: Cliente, as: 'cliente', include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'email'] }] },
-        { model: Usuario, as: 'tecnico', attributes: ['id', 'nombre'] },
-      ],
-      order: [['createdAt', 'DESC']],
-    });
+    const reparaciones = await Reparacion.findAll({ include: includeCliente, order: [['createdAt', 'DESC']] });
     return res.json({ data: reparaciones });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -22,12 +22,7 @@ const listar = async (req, res) => {
 
 const obtener = async (req, res) => {
   try {
-    const reparacion = await Reparacion.findByPk(req.params.id, {
-      include: [
-        { model: Cliente, as: 'cliente', include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'email'] }] },
-        { model: Usuario, as: 'tecnico', attributes: ['id', 'nombre'] },
-      ],
-    });
+    const reparacion = await Reparacion.findByPk(req.params.id, { include: includeCliente });
     if (!reparacion) return res.status(404).json({ error: 'Reparación no encontrada' });
     return res.json({ data: reparacion });
   } catch (err) {
@@ -57,21 +52,19 @@ const crear = async (req, res) => {
     }
 
     let codigo = generarCodigo();
-    // Garantizar unicidad del código
     while (await Reparacion.findOne({ where: { codigo } })) {
       codigo = generarCodigo();
     }
 
-    const reparacion = await Reparacion.create({
-      codigo,
-      cliente_id,
-      dispositivo,
-      problema,
-      fecha_entrega,
-      costo,
-      notas,
-      tecnico_id,
-    });
+    const reparacion = await Reparacion.create({ codigo, cliente_id, dispositivo, problema, fecha_entrega, costo, notas, tecnico_id });
+
+    // Notificar al cliente
+    const reparacionConCliente = await Reparacion.findByPk(reparacion.id, { include: includeCliente });
+    const email = reparacionConCliente?.cliente?.usuario?.email;
+    const nombre = reparacionConCliente?.cliente?.usuario?.nombre || 'Cliente';
+    if (email) {
+      enviarCorreo(email, 'recibido', { nombre, codigo, dispositivo, problema });
+    }
 
     return res.status(201).json({ data: reparacion });
   } catch (err) {
@@ -88,10 +81,18 @@ const actualizarEstado = async (req, res) => {
       return res.status(400).json({ error: `Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}` });
     }
 
-    const reparacion = await Reparacion.findByPk(req.params.id);
+    const reparacion = await Reparacion.findByPk(req.params.id, { include: includeCliente });
     if (!reparacion) return res.status(404).json({ error: 'Reparación no encontrada' });
 
     await reparacion.update({ estado, notas, costo, fecha_entrega, tecnico_id });
+
+    // Notificar al cliente sobre el cambio de estado
+    const email = reparacion?.cliente?.usuario?.email;
+    const nombre = reparacion?.cliente?.usuario?.nombre || 'Cliente';
+    if (email) {
+      enviarCorreo(email, estado, { nombre, codigo: reparacion.codigo, dispositivo: reparacion.dispositivo });
+    }
+
     return res.json({ data: reparacion });
   } catch (err) {
     return res.status(500).json({ error: err.message });

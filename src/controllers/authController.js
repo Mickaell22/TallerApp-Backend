@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { Usuario, Cliente } = require('../models');
+const { enviarCorreo } = require('../services/emailService');
 
 const generarToken = (usuario) => {
   return jwt.sign(
@@ -89,7 +90,8 @@ const recuperarPassword = async (req, res) => {
 
     await usuario.update({ reset_token: token, reset_token_expira: expira });
 
-    // El envío del correo se activa en la Fase 6 (notificaciones)
+    const enlace = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+    enviarCorreo(email, 'recuperar_password', { nombre: usuario.nombre, enlace });
     console.log(`[DEV] Token de recuperación para ${email}: ${token}`);
 
     return res.json({ data: { message: 'Si el email existe, recibirás un correo con instrucciones' } });
