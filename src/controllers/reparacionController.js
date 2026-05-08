@@ -1,4 +1,4 @@
-const { Reparacion, Cliente, Usuario, Repuesto } = require('../models');
+const { Reparacion, Cliente, Usuario, Repuesto, ReparacionRepuesto } = require('../models');
 const { enviarCorreo } = require('../services/emailService');
 
 const generarCodigo = () => {
@@ -105,6 +105,63 @@ const actualizarEstado = async (req, res) => {
   }
 };
 
+const agregarRepuesto = async (req, res) => {
+  try {
+    const { repuesto_id, cantidad } = req.body;
+    if (!repuesto_id || !cantidad || cantidad < 1) {
+      return res.status(400).json({ error: 'repuesto_id y cantidad (>=1) son requeridos' });
+    }
+
+    const reparacion = await Reparacion.findByPk(req.params.id);
+    if (!reparacion) return res.status(404).json({ error: 'Reparación no encontrada' });
+
+    const repuesto = await Repuesto.findByPk(repuesto_id);
+    if (!repuesto) return res.status(404).json({ error: 'Repuesto no encontrado' });
+
+    const existente = await ReparacionRepuesto.findOne({ where: { reparacion_id: req.params.id, repuesto_id } });
+    const cantidadAnterior = existente ? existente.cantidad : 0;
+    const diferencia = cantidad - cantidadAnterior;
+
+    if (repuesto.stock < diferencia) {
+      return res.status(400).json({ error: `Stock insuficiente. Disponible: ${repuesto.stock}` });
+    }
+
+    if (existente) {
+      await existente.update({ cantidad });
+    } else {
+      await ReparacionRepuesto.create({ reparacion_id: req.params.id, repuesto_id, cantidad });
+    }
+
+    await repuesto.update({ stock: repuesto.stock - diferencia });
+
+    const actualizada = await Reparacion.findByPk(req.params.id, { include: includeDetalle });
+    return res.json({ data: actualizada });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+const eliminarRepuesto = async (req, res) => {
+  try {
+    const { id, repuesto_id } = req.params;
+
+    const entrada = await ReparacionRepuesto.findOne({ where: { reparacion_id: id, repuesto_id } });
+    if (!entrada) return res.status(404).json({ error: 'Repuesto no asignado a esta reparación' });
+
+    const repuesto = await Repuesto.findByPk(repuesto_id);
+    if (repuesto) {
+      await repuesto.update({ stock: repuesto.stock + entrada.cantidad });
+    }
+
+    await entrada.destroy();
+
+    const actualizada = await Reparacion.findByPk(id, { include: includeDetalle });
+    return res.json({ data: actualizada });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 const historialCliente = async (req, res) => {
   try {
     const reparaciones = await Reparacion.findAll({
@@ -117,4 +174,4 @@ const historialCliente = async (req, res) => {
   }
 };
 
-module.exports = { listar, obtener, seguimiento, crear, actualizarEstado, historialCliente };
+module.exports = { listar, obtener, seguimiento, crear, actualizarEstado, historialCliente, agregarRepuesto, eliminarRepuesto };
