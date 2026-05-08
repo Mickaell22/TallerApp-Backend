@@ -29,6 +29,18 @@ const Repuesto = sequelize.define('repuesto', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
   },
+  sku: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  categoria: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  ubicacion: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 });
 
 module.exports = Repuesto;

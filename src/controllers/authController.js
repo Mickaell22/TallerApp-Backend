@@ -37,8 +37,7 @@ const register = async (req, res) => {
     return res.status(201).json({
       data: {
         token,
-        usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol },
-        cliente_id: cliente ? cliente.id : null,
+        usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol, cliente_id: cliente ? cliente.id : null },
       },
     });
   } catch (err) {
@@ -65,7 +64,12 @@ const login = async (req, res) => {
     }
 
     const token = generarToken(usuario);
-    return res.json({ data: { token, usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol } } });
+    let cliente_id = null;
+    if (usuario.rol === 'cliente') {
+      const perfil = await Cliente.findOne({ where: { usuario_id: usuario.id } });
+      cliente_id = perfil ? perfil.id : null;
+    }
+    return res.json({ data: { token, usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol, cliente_id } } });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
