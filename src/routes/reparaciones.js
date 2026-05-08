@@ -11,7 +11,7 @@ router.get('/cliente/:cliente_id', verificarToken, historialCliente);
 
 router.get('/', verificarToken, verificarRol('administrador', 'tecnico'), listar);
 router.post('/', verificarToken, verificarRol('administrador', 'tecnico'), crear);
-router.get('/:id', verificarToken, verificarRol('administrador', 'tecnico'), obtener);
+router.get('/:id', verificarToken, verificarRol('administrador', 'tecnico', 'cliente'), obtener);
 router.put('/:id/estado', verificarToken, verificarRol('administrador', 'tecnico'), actualizarEstado);
 
 module.exports = router;

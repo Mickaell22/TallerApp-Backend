@@ -6,6 +6,7 @@ const repuestoRoutes = require('./routes/repuestos');
 const facturaRoutes = require('./routes/facturas');
 const reporteRoutes = require('./routes/reportes');
 const clienteRoutes = require('./routes/clientes');
+const usuarioRoutes = require('./routes/usuarios');
 
 const app = express();
 
@@ -22,5 +23,6 @@ app.use('/api/repuestos', repuestoRoutes);
 app.use('/api/facturas', facturaRoutes);
 app.use('/api/reportes', reporteRoutes);
 app.use('/api/clientes', clienteRoutes);
+app.use('/api/usuarios', usuarioRoutes);
 
 module.exports = app;
