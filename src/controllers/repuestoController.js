@@ -23,13 +23,13 @@ const obtener = async (req, res) => {
 
 const crear = async (req, res) => {
   try {
-    const { nombre, descripcion, stock, stock_minimo, precio } = req.body;
+    const { nombre, descripcion, stock, stock_minimo, precio, sku, categoria, ubicacion } = req.body;
 
     if (!nombre || precio === undefined) {
       return res.status(400).json({ error: 'Nombre y precio son requeridos' });
     }
 
-    const repuesto = await Repuesto.create({ nombre, descripcion, stock, stock_minimo, precio });
+    const repuesto = await Repuesto.create({ nombre, descripcion, stock, stock_minimo, precio, sku, categoria, ubicacion });
     return res.status(201).json({ data: repuesto });
   } catch (err) {
     return res.status(500).json({ error: err.message });

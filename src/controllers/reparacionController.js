@@ -1,4 +1,4 @@
-const { Reparacion, Cliente, Usuario } = require('../models');
+const { Reparacion, Cliente, Usuario, Repuesto } = require('../models');
 const { enviarCorreo } = require('../services/emailService');
 
 const generarCodigo = () => {
@@ -7,8 +7,14 @@ const generarCodigo = () => {
 };
 
 const includeCliente = [
-  { model: Cliente, as: 'cliente', include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'email'] }] },
+  { model: Cliente, as: 'cliente', include: [{ model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'email'] }] },
   { model: Usuario, as: 'tecnico', attributes: ['id', 'nombre'] },
+];
+
+const includeDetalle = [
+  { model: Cliente, as: 'cliente', include: [{ model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'email'] }] },
+  { model: Usuario, as: 'tecnico', attributes: ['id', 'nombre'] },
+  { model: Repuesto, as: 'repuestos' },
 ];
 
 const listar = async (req, res) => {
@@ -22,7 +28,7 @@ const listar = async (req, res) => {
 
 const obtener = async (req, res) => {
   try {
-    const reparacion = await Reparacion.findByPk(req.params.id, { include: includeCliente });
+    const reparacion = await Reparacion.findByPk(req.params.id, { include: includeDetalle });
     if (!reparacion) return res.status(404).json({ error: 'Reparación no encontrada' });
     return res.json({ data: reparacion });
   } catch (err) {
@@ -81,7 +87,7 @@ const actualizarEstado = async (req, res) => {
       return res.status(400).json({ error: `Estado inválido. Valores permitidos: ${estadosValidos.join(', ')}` });
     }
 
-    const reparacion = await Reparacion.findByPk(req.params.id, { include: includeCliente });
+    const reparacion = await Reparacion.findByPk(req.params.id, { include: includeDetalle });
     if (!reparacion) return res.status(404).json({ error: 'Reparación no encontrada' });
 
     await reparacion.update({ estado, notas, costo, fecha_entrega, tecnico_id });

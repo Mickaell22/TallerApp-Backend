@@ -5,6 +5,7 @@ const reparacionRoutes = require('./routes/reparaciones');
 const repuestoRoutes = require('./routes/repuestos');
 const facturaRoutes = require('./routes/facturas');
 const reporteRoutes = require('./routes/reportes');
+const clienteRoutes = require('./routes/clientes');
 
 const app = express();
 
@@ -20,5 +21,6 @@ app.use('/api/reparaciones', reparacionRoutes);
 app.use('/api/repuestos', repuestoRoutes);
 app.use('/api/facturas', facturaRoutes);
 app.use('/api/reportes', reporteRoutes);
+app.use('/api/clientes', clienteRoutes);
 
 module.exports = app;
