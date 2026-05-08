@@ -16,9 +16,9 @@ async function seed() {
     const hash = (pw) => bcrypt.hash(pw, 10);
 
     const [juan, mickaell, monica] = await Promise.all([
-      Usuario.create({ nombre: 'Juan Garcia', email: 'juan@tallerapp.com',    password: await hash('Admin2026!'),   rol: 'administrador' }),
-      Usuario.create({ nombre: 'Mickaell Moran', email: 'mickaell@tallerapp.com', password: await hash('Tecnico2026!'), rol: 'tecnico' }),
-      Usuario.create({ nombre: 'Monica Vera', email: 'monica@tallerapp.com',  password: await hash('Cliente2026!'), rol: 'cliente' }),
+      Usuario.create({ nombre: 'Juan Garcia', email: 'mickaelmoranvera03@gmail.com',    password: await hash('Admin2026!'),   rol: 'administrador' }),
+      Usuario.create({ nombre: 'Mickaell Moran', email: 'mickael.moranver@ug.edu.ec', password: await hash('Tecnico2026!'), rol: 'tecnico' }),
+      Usuario.create({ nombre: 'Marco Salazar', email: 'marco.salazarmejia03@gmail.com',  password: await hash('Cliente2026!'), rol: 'cliente' }),
     ]);
     console.log('Usuarios creados.');
 
@@ -28,7 +28,7 @@ async function seed() {
       telefono:   '0991234567',
       direccion:  'Guayaquil, Ecuador',
     });
-    console.log('Registro cliente (Monica) creado.');
+    console.log('Registro cliente (Marco) creado.');
 
     // ── Repuestos ────────────────────────────────────────────────────────────
     const [pantalla, bateria, conector, camara, marco] = await Repuesto.bulkCreate([
@@ -115,15 +115,15 @@ async function seed() {
     console.log('SEED COMPLETADO — credenciales de prueba');
     console.log('========================================');
     console.log('ADMINISTRADOR');
-    console.log('  Email   : juan@tallerapp.com');
+    console.log('  Email   : mickaelmoranvera03@gmail.com');
     console.log('  Password: Admin2026!');
     console.log('');
     console.log('TECNICO');
-    console.log('  Email   : mickaell@tallerapp.com');
+    console.log('  Email   : mickael.moranver@ug.edu.ec');
     console.log('  Password: Tecnico2026!');
     console.log('');
     console.log('CLIENTE REGISTRADO');
-    console.log('  Email   : monica@tallerapp.com');
+    console.log('  Email   : marco.salazarmejia03@gmail.com');
     console.log('  Password: Cliente2026!');
     console.log('');
     console.log('CLIENTE INVITADO (sin cuenta)');
