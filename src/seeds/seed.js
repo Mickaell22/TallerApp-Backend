@@ -104,7 +104,7 @@ async function seed() {
     // ── Factura ───────────────────────────────────────────────────────────────
     await Factura.create({
       reparacion_id: rep4.id,
-      total:         30.00,
+      total:         38.50,
       fecha:         '2026-04-20',
       estado_pago:   'pagado',
     });
