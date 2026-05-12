@@ -6,7 +6,7 @@ const { enviarCorreo } = require('../services/emailService');
 
 const generarToken = (usuario) => {
   return jwt.sign(
-    { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol },
+    { id: usuario.id, rol: usuario.rol },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
   );
@@ -26,7 +26,7 @@ const register = async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, 10);
-    const usuario = await Usuario.create({ nombre, email, password: hash, rol: rol || 'cliente' });
+    const usuario = await Usuario.create({ nombre, email, password: hash, rol: 'cliente' });
 
     let cliente = null;
     if (usuario.rol === 'cliente') {
@@ -90,9 +90,10 @@ const recuperarPassword = async (req, res) => {
     }
 
     const token = crypto.randomBytes(32).toString('hex');
-    const expira = new Date(Date.now() + 3600000); // 1 hora
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const expira = new Date(Date.now() + 3600000);
 
-    await usuario.update({ reset_token: token, reset_token_expira: expira });
+    await usuario.update({ reset_token: tokenHash, reset_token_expira: expira });
 
     const enlace = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
     enviarCorreo(email, 'recuperar_password', { nombre: usuario.nombre, enlace });
@@ -112,7 +113,8 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'Token y nueva password son requeridos' });
     }
 
-    const usuario = await Usuario.findOne({ where: { reset_token: token } });
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const usuario = await Usuario.findOne({ where: { reset_token: tokenHash } });
     if (!usuario || usuario.reset_token_expira < new Date()) {
       return res.status(400).json({ error: 'Token inválido o expirado' });
     }
