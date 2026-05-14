@@ -19,6 +19,15 @@ const register = async (req, res) => {
     if (!nombre || !email || !password) {
       return res.status(400).json({ error: 'Nombre, email y password son requeridos' });
     }
+    if (nombre.trim().length < 2) {
+      return res.status(400).json({ error: 'El nombre debe tener al menos 2 caracteres' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+    }
+    if (telefono && !/^[0-9]{10}$/.test(telefono)) {
+      return res.status(400).json({ error: 'El teléfono debe tener exactamente 10 dígitos' });
+    }
 
     const existe = await Usuario.findOne({ where: { email } });
     if (existe) {

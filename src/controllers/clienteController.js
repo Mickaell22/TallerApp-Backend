@@ -38,4 +38,34 @@ const obtener = async (req, res) => {
   }
 };
 
-module.exports = { listar, obtener };
+const actualizar = async (req, res) => {
+  try {
+    const cliente = await Cliente.findByPk(req.params.id, {
+      include: [{ model: Usuario, as: 'usuario' }],
+    });
+    if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
+
+    const { nombre, telefono, direccion } = req.body;
+
+    if (telefono && !/^[0-9]{10}$/.test(telefono)) {
+      return res.status(400).json({ error: 'El teléfono debe tener exactamente 10 dígitos' });
+    }
+
+    if (nombre && nombre.trim().length >= 2) {
+      await cliente.usuario.update({ nombre: nombre.trim() });
+    }
+    await cliente.update({
+      telefono: telefono || null,
+      direccion: direccion || null,
+    });
+
+    const actualizado = await Cliente.findByPk(req.params.id, {
+      include: [{ model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'email', 'createdAt'] }],
+    });
+    return res.json({ data: actualizado });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { listar, obtener, actualizar };
