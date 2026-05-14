@@ -51,13 +51,21 @@ const crear = async (req, res) => {
     const yaFacturada = await Factura.findOne({ where: { reparacion_id } });
     if (yaFacturada) return res.status(400).json({ error: 'Esta reparación ya tiene una factura generada' });
 
-    // Calcular total: costo de mano de obra + repuestos
-    let total = parseFloat(reparacion.costo || 0);
+    // Calcular subtotal (mano de obra + repuestos) e impuesto
+    let subtotal = parseFloat(reparacion.costo || 0);
     reparacion.repuestos.forEach((r) => {
-      total += parseFloat(r.precio) * (r.reparacion_repuesto?.cantidad || 1);
+      subtotal += parseFloat(r.precio) * (r.reparacion_repuesto?.cantidad || 1);
     });
+    const impuesto = 0;
+    const total = subtotal + impuesto;
 
-    const factura = await Factura.create({ reparacion_id, total: total.toFixed(2), estado_pago });
+    const factura = await Factura.create({
+      reparacion_id,
+      subtotal: subtotal.toFixed(2),
+      impuesto: impuesto.toFixed(2),
+      total: total.toFixed(2),
+      estado_pago,
+    });
     return res.status(201).json({ data: factura });
   } catch (err) {
     return res.status(500).json({ error: err.message });

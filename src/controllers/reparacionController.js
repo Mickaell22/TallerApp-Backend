@@ -1,4 +1,4 @@
-const { Reparacion, Cliente, Usuario, Repuesto, ReparacionRepuesto } = require('../models');
+const { Reparacion, Cliente, Usuario, Repuesto, ReparacionRepuesto, Factura } = require('../models');
 const { enviarCorreo } = require('../services/emailService');
 
 const generarCodigo = () => {
@@ -92,6 +92,23 @@ const actualizarEstado = async (req, res) => {
 
     await reparacion.update({ estado, notas, costo, fecha_entrega, tecnico_id });
 
+    // RF-16: Auto-generar factura al pasar a 'listo'
+    if (estado === 'listo') {
+      const yaFacturada = await Factura.findOne({ where: { reparacion_id: reparacion.id } });
+      if (!yaFacturada) {
+        let subtotal = parseFloat(reparacion.costo || 0);
+        reparacion.repuestos.forEach((r) => {
+          subtotal += parseFloat(r.precio) * (r.reparacion_repuesto?.cantidad || 1);
+        });
+        await Factura.create({
+          reparacion_id: reparacion.id,
+          subtotal: subtotal.toFixed(2),
+          impuesto: '0.00',
+          total: subtotal.toFixed(2),
+        });
+      }
+    }
+
     // Notificar al cliente sobre el cambio de estado
     const email = reparacion?.cliente?.usuario?.email;
     const nombre = reparacion?.cliente?.usuario?.nombre || 'Cliente';
@@ -133,6 +150,18 @@ const agregarRepuesto = async (req, res) => {
     }
 
     await repuesto.update({ stock: repuesto.stock - diferencia });
+
+    // RF-20: Notificar al admin si el stock cae al mínimo
+    if (repuesto.stock <= repuesto.stock_minimo) {
+      const admins = await Usuario.findAll({ where: { rol: 'administrador' } });
+      for (const admin of admins) {
+        enviarCorreo(admin.email, 'stock_bajo', {
+          nombre: repuesto.nombre,
+          stock: repuesto.stock,
+          stock_minimo: repuesto.stock_minimo,
+        });
+      }
+    }
 
     const actualizada = await Reparacion.findByPk(req.params.id, { include: includeDetalle });
     return res.json({ data: actualizada });

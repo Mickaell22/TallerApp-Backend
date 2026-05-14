@@ -50,6 +50,14 @@ const Reparacion = sequelize.define('reparacion', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
+  diagnostico: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  costo_estimado: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+  },
 });
 
 module.exports = Reparacion;

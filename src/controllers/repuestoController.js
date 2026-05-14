@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
-const { Repuesto, ReparacionRepuesto } = require('../models');
+const { Repuesto, ReparacionRepuesto, Usuario } = require('../models');
+const { enviarCorreo } = require('../services/emailService');
 
 const listar = async (req, res) => {
   try {
@@ -42,6 +43,19 @@ const actualizar = async (req, res) => {
     if (!repuesto) return res.status(404).json({ error: 'Repuesto no encontrado' });
 
     await repuesto.update(req.body);
+
+    // RF-20: Notificar al admin si el stock cae al mínimo tras la actualización
+    if (req.body.stock !== undefined && repuesto.stock <= repuesto.stock_minimo) {
+      const admins = await Usuario.findAll({ where: { rol: 'administrador' } });
+      for (const admin of admins) {
+        enviarCorreo(admin.email, 'stock_bajo', {
+          nombre: repuesto.nombre,
+          stock: repuesto.stock,
+          stock_minimo: repuesto.stock_minimo,
+        });
+      }
+    }
+
     return res.json({ data: repuesto });
   } catch (err) {
     return res.status(500).json({ error: err.message });

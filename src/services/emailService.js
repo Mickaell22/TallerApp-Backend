@@ -72,6 +72,20 @@ const plantillas = {
     `,
   }),
 
+  stock_bajo: (datos) => ({
+    subject: `TallerApp — Alerta de stock bajo: ${datos.nombre}`,
+    html: `
+      <h2>Alerta de stock bajo</h2>
+      <p>El repuesto <strong>${datos.nombre}</strong> ha caído por debajo del nivel mínimo:</p>
+      <ul>
+        <li>Stock actual: <strong>${datos.stock}</strong></li>
+        <li>Stock mínimo configurado: <strong>${datos.stock_minimo}</strong></li>
+      </ul>
+      <p>Por favor realiza un pedido de reabastecimiento a la brevedad.</p>
+      <br><p>— Sistema TallerApp</p>
+    `,
+  }),
+
   recuperar_password: (datos) => ({
     subject: 'TallerApp — Recuperación de contraseña',
     html: `

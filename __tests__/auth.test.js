@@ -21,12 +21,23 @@ describe('POST /api/auth/register', () => {
       nombre: 'Juan Montoya',
       email: 'juan@tallerapp.com',
       password: 'password123',
-      rol: 'administrador',
     });
 
     expect(res.statusCode).toBe(201);
     expect(res.body.data).toHaveProperty('token');
     expect(res.body.data.usuario.email).toBe('juan@tallerapp.com');
+  });
+
+  it('siempre asigna rol cliente por seguridad (ignora el campo rol del body)', async () => {
+    const res = await request(app).post('/api/auth/register').send({
+      nombre: 'Intento Admin',
+      email: 'intento@tallerapp.com',
+      password: 'password123',
+      rol: 'administrador',
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.data.usuario.rol).toBe('cliente');
   });
 
   it('rechaza un email ya registrado', async () => {
@@ -48,8 +59,22 @@ describe('POST /api/auth/register', () => {
   });
 });
 
+describe('POST /api/auth/registro (alias SDD)', () => {
+  it('alias /registro funciona igual que /register', async () => {
+    const res = await request(app).post('/api/auth/registro').send({
+      nombre: 'Alias Test',
+      email: 'alias@tallerapp.com',
+      password: 'password123',
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.data).toHaveProperty('token');
+    expect(res.body.data.usuario.rol).toBe('cliente');
+  });
+});
+
 describe('POST /api/auth/login', () => {
-  it('hace login con credenciales correctas', async () => {
+  it('hace login con credenciales correctas y devuelve rol correcto', async () => {
     const res = await request(app).post('/api/auth/login').send({
       email: 'juan@tallerapp.com',
       password: 'password123',
@@ -57,7 +82,7 @@ describe('POST /api/auth/login', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.data).toHaveProperty('token');
-    expect(res.body.data.usuario.rol).toBe('administrador');
+    expect(res.body.data.usuario.rol).toBe('cliente');
   });
 
   it('rechaza credenciales incorrectas', async () => {
@@ -100,6 +125,33 @@ describe('GET /api/auth/perfil', () => {
 
   it('rechaza petición sin token', async () => {
     const res = await request(app).get('/api/auth/perfil');
+
+    expect(res.statusCode).toBe(401);
+  });
+});
+
+describe('POST /api/auth/logout', () => {
+  let token;
+
+  beforeAll(async () => {
+    const res = await request(app).post('/api/auth/login').send({
+      email: 'juan@tallerapp.com',
+      password: 'password123',
+    });
+    token = res.body.data.token;
+  });
+
+  it('cierra sesión correctamente con token válido', async () => {
+    const res = await request(app)
+      .post('/api/auth/logout')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data.message).toBe('Sesión cerrada correctamente');
+  });
+
+  it('rechaza logout sin token', async () => {
+    const res = await request(app).post('/api/auth/logout');
 
     expect(res.statusCode).toBe(401);
   });

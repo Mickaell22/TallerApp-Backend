@@ -139,4 +139,8 @@ const perfil = async (req, res) => {
   }
 };
 
-module.exports = { register, login, recuperarPassword, resetPassword, perfil };
+const logout = (req, res) => {
+  return res.json({ data: { message: 'Sesión cerrada correctamente' } });
+};
+
+module.exports = { register, login, recuperarPassword, resetPassword, perfil, logout };

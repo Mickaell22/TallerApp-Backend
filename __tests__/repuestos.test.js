@@ -2,10 +2,10 @@ process.env.NODE_ENV = 'test';
 require('dotenv').config({ path: '.env.test' });
 
 const request = require('supertest');
+const bcrypt = require('bcryptjs');
 const sequelize = require('../src/config/database');
 const app = require('../src/app');
-
-require('../src/models');
+const { Usuario } = require('../src/models');
 
 let tokenAdmin;
 let repuestoId;
@@ -13,12 +13,8 @@ let repuestoId;
 beforeAll(async () => {
   await sequelize.sync({ force: true });
 
-  await request(app).post('/api/auth/register').send({
-    nombre: 'Admin',
-    email: 'admin@tallerapp.com',
-    password: 'admin123',
-    rol: 'administrador',
-  });
+  const hash = await bcrypt.hash('admin123', 10);
+  await Usuario.create({ nombre: 'Admin', email: 'admin@tallerapp.com', password: hash, rol: 'administrador' });
 
   const login = await request(app).post('/api/auth/login').send({
     email: 'admin@tallerapp.com',
@@ -107,6 +103,24 @@ describe('GET /api/repuestos/alertas/stock-minimo', () => {
     expect(Array.isArray(res.body.data)).toBe(true);
     // stock=2 <= stock_minimo=3, debe aparecer en alertas
     expect(res.body.data.some((r) => r.id === repuestoId)).toBe(true);
+  });
+});
+
+describe('RF-20 — Email al admin cuando stock cae al mínimo', () => {
+  it('actualiza stock por debajo del mínimo sin error (email disparado internamente)', async () => {
+    const repRes = await request(app)
+      .post('/api/repuestos')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .send({ nombre: 'Batería Test', precio: 20, stock: 10, stock_minimo: 5 });
+    const id = repRes.body.data.id;
+
+    const res = await request(app)
+      .put(`/api/repuestos/${id}`)
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .send({ stock: 3 });
+
+    expect(res.statusCode).toBe(200);
+    expect(Number(res.body.data.stock)).toBe(3);
   });
 });
 

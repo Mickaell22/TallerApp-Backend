@@ -2,10 +2,10 @@ process.env.NODE_ENV = 'test';
 require('dotenv').config({ path: '.env.test' });
 
 const request = require('supertest');
+const bcrypt = require('bcryptjs');
 const sequelize = require('../src/config/database');
 const app = require('../src/app');
-
-require('../src/models');
+const { Usuario, Cliente } = require('../src/models');
 
 let tokenAdmin;
 let clienteId;
@@ -15,13 +15,9 @@ let codigoSeguimiento;
 beforeAll(async () => {
   await sequelize.sync({ force: true });
 
-  // Crear admin
-  await request(app).post('/api/auth/register').send({
-    nombre: 'Admin',
-    email: 'admin@tallerapp.com',
-    password: 'admin123',
-    rol: 'administrador',
-  });
+  // Crear admin directamente en BD (el endpoint register siempre crea 'cliente')
+  const hash = await bcrypt.hash('admin123', 10);
+  await Usuario.create({ nombre: 'Admin', email: 'admin@tallerapp.com', password: hash, rol: 'administrador' });
 
   const login = await request(app).post('/api/auth/login').send({
     email: 'admin@tallerapp.com',
@@ -29,15 +25,16 @@ beforeAll(async () => {
   });
   tokenAdmin = login.body.data.token;
 
-  // Crear cliente para las pruebas
-  const clienteRes = await request(app).post('/api/auth/register').send({
+  // Crear cliente directamente en BD
+  const clienteHash = await bcrypt.hash('cliente123', 10);
+  const clienteUser = await Usuario.create({
     nombre: 'Cliente Test',
     email: 'cliente@tallerapp.com',
-    password: 'cliente123',
+    password: clienteHash,
     rol: 'cliente',
-    telefono: '0991234567',
   });
-  clienteId = clienteRes.body.data.cliente_id;
+  const clienteRecord = await Cliente.create({ usuario_id: clienteUser.id, telefono: '0991234567' });
+  clienteId = clienteRecord.id;
 });
 
 afterAll(async () => {
@@ -142,5 +139,62 @@ describe('PUT /api/reparaciones/:id/estado', () => {
       .send({ estado: 'inventado' });
 
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('RF-16 — Auto-factura al cambiar estado a listo', () => {
+  let repListo;
+
+  beforeAll(async () => {
+    const res = await request(app)
+      .post('/api/reparaciones')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .send({ cliente_id: clienteId, dispositivo: 'Motorola G8', problema: 'Sin sonido', costo: 40 });
+    repListo = res.body.data.id;
+  });
+
+  it('genera factura automáticamente al pasar a listo', async () => {
+    const res = await request(app)
+      .put(`/api/reparaciones/${repListo}/estado`)
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .send({ estado: 'listo', costo: 40 });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data.estado).toBe('listo');
+
+    const facturasRes = await request(app)
+      .get('/api/facturas')
+      .set('Authorization', `Bearer ${tokenAdmin}`);
+
+    const facturaAuto = facturasRes.body.data.find((f) => f.reparacion_id === repListo);
+    expect(facturaAuto).toBeTruthy();
+    expect(parseFloat(facturaAuto.total)).toBeGreaterThanOrEqual(40);
+    expect(facturaAuto).toHaveProperty('subtotal');
+    expect(facturaAuto).toHaveProperty('impuesto');
+  });
+
+  it('no duplica la factura si ya existía al volver a pasar a listo', async () => {
+    await request(app)
+      .put(`/api/reparaciones/${repListo}/estado`)
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .send({ estado: 'listo' });
+
+    const facturasRes = await request(app)
+      .get('/api/facturas')
+      .set('Authorization', `Bearer ${tokenAdmin}`);
+
+    const facturasParaRep = facturasRes.body.data.filter((f) => f.reparacion_id === repListo);
+    expect(facturasParaRep.length).toBe(1);
+  });
+});
+
+describe('GET /api/reparaciones/cliente/:id', () => {
+  it('devuelve el historial del cliente', async () => {
+    const res = await request(app)
+      .get(`/api/reparaciones/cliente/${clienteId}`)
+      .set('Authorization', `Bearer ${tokenAdmin}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.body.data)).toBe(true);
   });
 });
