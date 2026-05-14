@@ -2,10 +2,10 @@ process.env.NODE_ENV = 'test';
 require('dotenv').config({ path: '.env.test' });
 
 const request = require('supertest');
+const bcrypt = require('bcryptjs');
 const sequelize = require('../src/config/database');
 const app = require('../src/app');
-
-require('../src/models');
+const { Usuario, Cliente } = require('../src/models');
 
 let tokenAdmin;
 const hoy = new Date().toISOString().split('T')[0];
@@ -13,26 +13,24 @@ const hoy = new Date().toISOString().split('T')[0];
 beforeAll(async () => {
   await sequelize.sync({ force: true });
 
-  await request(app).post('/api/auth/register').send({
-    nombre: 'Admin',
-    email: 'admin@tallerapp.com',
-    password: 'admin123',
-    rol: 'administrador',
-  });
+  const hash = await bcrypt.hash('admin123', 10);
+  await Usuario.create({ nombre: 'Admin', email: 'admin@tallerapp.com', password: hash, rol: 'administrador' });
+
   const login = await request(app).post('/api/auth/login').send({
     email: 'admin@tallerapp.com',
     password: 'admin123',
   });
   tokenAdmin = login.body.data.token;
 
-  // Datos de prueba: cliente, reparación, repuesto y factura
-  const clienteRes = await request(app).post('/api/auth/register').send({
+  const clienteHash = await bcrypt.hash('cliente123', 10);
+  const clienteUser = await Usuario.create({
     nombre: 'Cliente Test',
     email: 'cliente@tallerapp.com',
-    password: 'cliente123',
+    password: clienteHash,
     rol: 'cliente',
   });
-  const clienteId = clienteRes.body.data.cliente_id;
+  const clienteRecord = await Cliente.create({ usuario_id: clienteUser.id });
+  const clienteId = clienteRecord.id;
 
   const repRes = await request(app)
     .post('/api/reparaciones')

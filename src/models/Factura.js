@@ -12,6 +12,16 @@ const Factura = sequelize.define('factura', {
     allowNull: false,
     unique: true,
   },
+  subtotal: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+  },
+  impuesto: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+  },
   total: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,

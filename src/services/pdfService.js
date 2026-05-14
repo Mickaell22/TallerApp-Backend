@@ -58,9 +58,11 @@ const generarFacturaPDF = (factura, res) => {
     doc.moveDown();
   }
 
-  // Total
+  // Totales
   doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
   doc.moveDown(0.5);
+  doc.fontSize(11).font('Helvetica').text(`Subtotal: $${parseFloat(factura.subtotal ?? factura.total).toFixed(2)}`, { align: 'right' });
+  doc.text(`Impuesto: $${parseFloat(factura.impuesto ?? 0).toFixed(2)}`, { align: 'right' });
   doc.fontSize(14).font('Helvetica-Bold').text(`TOTAL: $${parseFloat(factura.total).toFixed(2)}`, { align: 'right' });
 
   doc.end();

@@ -2,10 +2,10 @@ process.env.NODE_ENV = 'test';
 require('dotenv').config({ path: '.env.test' });
 
 const request = require('supertest');
+const bcrypt = require('bcryptjs');
 const sequelize = require('../src/config/database');
 const app = require('../src/app');
-
-require('../src/models');
+const { Usuario, Cliente } = require('../src/models');
 
 let tokenAdmin;
 let facturaId;
@@ -14,27 +14,24 @@ let reparacionId;
 beforeAll(async () => {
   await sequelize.sync({ force: true });
 
-  // Crear admin
-  await request(app).post('/api/auth/register').send({
-    nombre: 'Admin',
-    email: 'admin@tallerapp.com',
-    password: 'admin123',
-    rol: 'administrador',
-  });
+  const hash = await bcrypt.hash('admin123', 10);
+  await Usuario.create({ nombre: 'Admin', email: 'admin@tallerapp.com', password: hash, rol: 'administrador' });
+
   const login = await request(app).post('/api/auth/login').send({
     email: 'admin@tallerapp.com',
     password: 'admin123',
   });
   tokenAdmin = login.body.data.token;
 
-  // Crear cliente y reparación
-  const clienteRes = await request(app).post('/api/auth/register').send({
+  const clienteHash = await bcrypt.hash('cliente123', 10);
+  const clienteUser = await Usuario.create({
     nombre: 'Cliente Test',
     email: 'cliente@tallerapp.com',
-    password: 'cliente123',
+    password: clienteHash,
     rol: 'cliente',
   });
-  const clienteId = clienteRes.body.data.cliente_id;
+  const clienteRecord = await Cliente.create({ usuario_id: clienteUser.id });
+  const clienteId = clienteRecord.id;
 
   const repRes = await request(app)
     .post('/api/reparaciones')
@@ -48,7 +45,7 @@ afterAll(async () => {
 });
 
 describe('POST /api/facturas', () => {
-  it('genera una factura correctamente', async () => {
+  it('genera una factura correctamente con subtotal e impuesto', async () => {
     const res = await request(app)
       .post('/api/facturas')
       .set('Authorization', `Bearer ${tokenAdmin}`)
@@ -57,6 +54,10 @@ describe('POST /api/facturas', () => {
     expect(res.statusCode).toBe(201);
     expect(res.body.data).toHaveProperty('id');
     expect(parseFloat(res.body.data.total)).toBeGreaterThanOrEqual(30);
+    expect(res.body.data).toHaveProperty('subtotal');
+    expect(res.body.data).toHaveProperty('impuesto');
+    expect(parseFloat(res.body.data.subtotal)).toBeGreaterThanOrEqual(30);
+    expect(parseFloat(res.body.data.impuesto)).toBeGreaterThanOrEqual(0);
     facturaId = res.body.data.id;
   });
 
@@ -93,13 +94,16 @@ describe('GET /api/facturas', () => {
 });
 
 describe('GET /api/facturas/:id', () => {
-  it('obtiene una factura por id', async () => {
+  it('obtiene una factura por id con subtotal e impuesto', async () => {
     const res = await request(app)
       .get(`/api/facturas/${facturaId}`)
       .set('Authorization', `Bearer ${tokenAdmin}`);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.data.id).toBe(facturaId);
+    expect(res.body.data).toHaveProperty('subtotal');
+    expect(res.body.data).toHaveProperty('impuesto');
+    expect(res.body.data).toHaveProperty('total');
   });
 
   it('retorna 404 si no existe', async () => {
