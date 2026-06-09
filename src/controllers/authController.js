@@ -106,7 +106,7 @@ const recuperarPassword = async (req, res) => {
 
     const enlace = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
     enviarCorreo(email, 'recuperar_password', { nombre: usuario.nombre, enlace });
-    console.log(`[DEV] Token de recuperación para ${email}: ${token}`);
+    if (process.env.NODE_ENV !== 'production') console.log(`[DEV] Token de recuperación para ${email}: ${token}`);
 
     return res.json({ data: { message: 'Si el email existe, recibirás un correo con instrucciones' } });
   } catch (err) {

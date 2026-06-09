@@ -162,8 +162,8 @@ Backend/
 
 ```bash
 # 1. Clonar el repositorio
-git clone https://github.com/tu-usuario/tallerapp-backend.git
-cd tallerapp-backend
+git clone https://github.com/Mickaell22/TallerApp-Backend.git
+cd TallerApp-Backend
 
 # 2. Instalar dependencias
 npm install
@@ -231,11 +231,11 @@ docs:     Cambios en documentación
 ## Repositorio Frontend
 
 Este backend es consumido por:
-[TallerApp — Frontend](https://github.com/tu-usuario/tallerapp-frontend)
+[TallerApp — Frontend](https://github.com/Mickaell22/TallerApp-Frontend)
 
 ---
 
 ## Equipo
 
-Desarrollado por estudiantes de la **Universidad de Guayaquil**
-Asignatura: Gestión y Configuración del Software
+Desarrollado por **Morán Vera Mickaell Adrián**
+Universidad de Guayaquil — Asignatura: Gestión y Configuración del Software
